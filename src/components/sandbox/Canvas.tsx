@@ -148,7 +148,7 @@ export function Canvas() {
   }, [connections, nodeOutputs]);
 
   const clearCanvas = () => {
-    if (nodes.length === 0 || confirm('Clear all nodes and connections?')) {
+    if (nodes.length === 0 || confirm('Tüm düğümleri ve bağlantıları temizle?')) {
       dispatch({ type: 'CLEAR_CANVAS' });
     }
   };
@@ -210,26 +210,26 @@ export function Canvas() {
         className="fixed top-4 right-4 flex items-center gap-1 rounded-lg px-2 py-1 z-30"
         style={{ backgroundColor: 'hsl(228 18% 12%)', border: '1px solid hsl(228 15% 22%)' }}
       >
-        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-25" style={{ color: 'hsl(215 10% 55%)' }} disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)"><Undo2 size={16} /></button>
-        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-25" style={{ color: 'hsl(215 10% 55%)' }} disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Y)"><Redo2 size={16} /></button>
+        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-25" style={{ color: 'hsl(215 10% 55%)' }} disabled={!canUndo} onClick={undo} title="Geri Al (Ctrl+Z)"><Undo2 size={16} /></button>
+        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-25" style={{ color: 'hsl(215 10% 55%)' }} disabled={!canRedo} onClick={redo} title="Yinele (Ctrl+Y)"><Redo2 size={16} /></button>
         <div className="w-px h-5 mx-1" style={{ backgroundColor: 'hsl(228 15% 22%)' }} />
-        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors" style={{ color: isRunning ? 'hsl(45 80% 55%)' : 'hsl(152 70% 55%)' }} onClick={togglePause} title={isRunning ? 'Pause' : 'Resume'}>
+        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors" style={{ color: isRunning ? 'hsl(45 80% 55%)' : 'hsl(152 70% 55%)' }} onClick={togglePause} title={isRunning ? 'Duraklat' : 'Devam Et'}>
           {isRunning ? <Pause size={16} /> : <Play size={16} />}
         </button>
-        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors" style={{ color: 'hsl(0 60% 55%)' }} onClick={clearCanvas} title="Clear canvas"><Trash2 size={16} /></button>
+        <button className="w-8 h-8 flex items-center justify-center rounded transition-colors" style={{ color: 'hsl(0 60% 55%)' }} onClick={clearCanvas} title="Temizle"><Trash2 size={16} /></button>
       </div>
 
 
       {selectedTool && (
         <div className="fixed top-4 left-20 z-30 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: 'hsl(152 60% 30%)', color: 'hsl(152 60% 95%)', border: '1px solid hsl(152 60% 40%)' }}>
-          Click to place: {selectedTool}
+          Yerleştirmek için tıklayın: {selectedTool}
           <button className="hover:opacity-70 ml-1" onClick={() => dispatch({ type: 'SET_TOOL', tool: null })}>✕</button>
         </div>
       )}
 
       {connectingFrom && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-30 px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: 'hsl(45 80% 25%)', color: 'hsl(45 80% 85%)', border: '1px solid hsl(45 80% 40%)' }}>
-          Click a {connectingFrom.pinType === 'output' ? 'input' : 'output'} pin to connect
+          Bağlamak için bir {connectingFrom.pinType === 'output' ? 'giriş' : 'çıkış'} pinine tıklayın
         </div>
       )}
 
