@@ -401,22 +401,22 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
           const isOn = vals[i] ?? false;
           let tLeft: number, tTop: number;
           if (rot === 0) {
-            tLeft = 2; tTop = (i + 1) * height / (pinCount + 1) - 6;
+            tLeft = 0; tTop = (i + 1) * height / (pinCount + 1) - 9;
           } else if (rot === 90) {
-            tLeft = (i + 1) * width / (pinCount + 1) - 6; tTop = 2;
+            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = 0;
           } else if (rot === 180) {
-            tLeft = width - 14; tTop = (i + 1) * height / (pinCount + 1) - 6;
+            tLeft = width - 18; tTop = (i + 1) * height / (pinCount + 1) - 9;
           } else {
-            tLeft = (i + 1) * width / (pinCount + 1) - 6; tTop = height - 14;
+            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = height - 18;
           }
           return (
             <div
               key={`toggle-${i}`}
               className="absolute rounded cursor-pointer"
               style={{
-                left: tLeft, top: tTop, width: 12, height: 12,
+                left: tLeft, top: tTop, width: 18, height: 18,
                 backgroundColor: isOn ? 'hsl(45 90% 55%)' : 'hsl(228 10% 22%)',
-                border: `1px solid ${isOn ? 'hsl(45 90% 70%)' : 'hsl(228 10% 35%)'}`,
+                border: `2px solid ${isOn ? 'hsl(45 90% 70%)' : 'hsl(228 10% 35%)'}`,
                 zIndex: 11, transition: 'all 0.1s',
               }}
               onPointerDown={(e) => { e.stopPropagation(); onTogglePinBarPin(node.id, i); }}
@@ -428,22 +428,22 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
           const isOn = inputValues[i] ?? false;
           let tLeft: number, tTop: number;
           if (rot === 0) {
-            tLeft = width - 14; tTop = (i + 1) * height / (pinCount + 1) - 6;
+            tLeft = width - 18; tTop = (i + 1) * height / (pinCount + 1) - 9;
           } else if (rot === 90) {
-            tLeft = (i + 1) * width / (pinCount + 1) - 6; tTop = height - 14;
+            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = height - 18;
           } else if (rot === 180) {
-            tLeft = 2; tTop = (i + 1) * height / (pinCount + 1) - 6;
+            tLeft = 0; tTop = (i + 1) * height / (pinCount + 1) - 9;
           } else {
-            tLeft = (i + 1) * width / (pinCount + 1) - 6; tTop = 2;
+            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = 0;
           }
           return (
             <div
               key={`val-${i}`}
               className="absolute rounded"
               style={{
-                left: tLeft, top: tTop, width: 12, height: 12,
+                left: tLeft, top: tTop, width: 18, height: 18,
                 backgroundColor: isOn ? 'hsl(152 80% 45%)' : 'hsl(228 10% 22%)',
-                border: `1px solid ${isOn ? 'hsl(152 80% 60%)' : 'hsl(228 10% 35%)'}`,
+                border: `2px solid ${isOn ? 'hsl(152 80% 60%)' : 'hsl(228 10% 35%)'}`,
                 zIndex: 11, transition: 'all 0.1s',
               }}
             />
