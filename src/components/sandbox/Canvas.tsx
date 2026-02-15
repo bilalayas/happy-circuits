@@ -219,18 +219,6 @@ export function Canvas() {
         <button className="w-8 h-8 flex items-center justify-center rounded transition-colors" style={{ color: 'hsl(0 60% 55%)' }} onClick={clearCanvas} title="Clear canvas"><Trash2 size={16} /></button>
       </div>
 
-      {cycleConnectionIds.length > 0 && (
-        <div className="fixed top-16 right-4 z-30 px-4 py-2 rounded-lg text-xs font-medium max-w-72" style={{ backgroundColor: 'hsl(0 50% 15%)', color: 'hsl(0 70% 70%)', border: '1px solid hsl(0 40% 30%)' }}>
-          ⚠ Döngü algılandı — {cycleConnectionIds.length} kablo kırmızı. Kaldırarak düzeltin.
-          {!forceResumed ? (
-            <button className="ml-2 underline opacity-70 hover:opacity-100" onClick={() => dispatch({ type: 'FORCE_RESUME' })}>
-              Zorla çalıştır
-            </button>
-          ) : (
-            <span className="ml-2 opacity-60">(zorla çalışıyor)</span>
-          )}
-        </div>
-      )}
 
       {selectedTool && (
         <div className="fixed top-4 left-20 z-30 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2" style={{ backgroundColor: 'hsl(152 60% 30%)', color: 'hsl(152 60% 95%)', border: '1px solid hsl(152 60% 40%)' }}>

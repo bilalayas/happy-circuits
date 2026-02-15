@@ -193,16 +193,6 @@ export function CircuitProvider({ children }: { children: React.ReactNode }) {
     [state.nodes, state.connections]
   );
 
-  // FIX: Only auto-pause if NOT force-resumed
-  useEffect(() => {
-    if (cycleConnectionIds.length > 0 && !state.paused && !state.forceResumed) {
-      rawDispatch({ type: 'SET_PAUSED', paused: true });
-    }
-    // When cycles are resolved, reset forceResumed
-    if (cycleConnectionIds.length === 0 && state.forceResumed) {
-      rawDispatch({ type: 'SET_PAUSED', paused: false });
-    }
-  }, [cycleConnectionIds, state.paused, state.forceResumed]);
 
   // FIX: When force-resumed, still evaluate the circuit (don't freeze on last outputs)
   const nodeOutputs = useMemo(() => {
