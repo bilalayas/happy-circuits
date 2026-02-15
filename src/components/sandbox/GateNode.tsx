@@ -169,7 +169,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         style={{
           top: height + 8, left: -20, width: 220,
           backgroundColor: 'hsl(228 18% 14%)', border: '1px solid hsl(228 15% 24%)',
-          zIndex: 100,
+          zIndex: 9999,
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
@@ -180,12 +180,12 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
             onChange={(e) => onUpdateNode(node.id, { showPinNames: e.target.checked })}
             className="accent-emerald-500"
           />
-          <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(215 10% 50%)' }}>Show pin names</span>
+          <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(215 10% 50%)' }}>Pin isimlerini göster</span>
         </label>
 
         {(node.type === 'PINBAR' || node.type === 'MODULE') && (
           <div>
-            <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Rotation: {rot}°</label>
+            <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Döndürme: {rot}°</label>
             <div className="flex gap-1">
               {[0, 90, 180, 270].map(r => (
                 <button
@@ -207,7 +207,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         {node.type === 'PINBAR' && (
           <>
             <div>
-              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Mode</label>
+              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Mod</label>
               <div className="flex gap-1">
                 {(['input', 'output'] as const).map(mode => (
                   <button
@@ -233,7 +233,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
             </div>
             <div>
               <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>
-                Pin count: {Math.max(node.inputCount, node.outputCount)}
+                Pin sayısı: {Math.max(node.inputCount, node.outputCount)}
               </label>
               <input
                 type="range" min={1} max={16} value={Math.max(node.inputCount, node.outputCount)}
@@ -256,7 +256,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         {node.type === 'LED' && (
           <>
             <div>
-              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Color</label>
+              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Renk</label>
               <div className="flex gap-1 flex-wrap">
                 {LED_COLORS.map(color => (
                   <button key={color} className="w-6 h-6 rounded-full border-2"
@@ -267,7 +267,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
               </div>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Shape</label>
+              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Şekil</label>
               <div className="flex gap-1">
                 {LED_SHAPES.map(s => (
                   <button key={s.value} className="w-8 h-8 rounded flex items-center justify-center text-sm"
@@ -282,12 +282,12 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
               </div>
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Size: {node.ledSize || 18}px</label>
+              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Boyut: {node.ledSize || 18}px</label>
               <input type="range" min={8} max={40} value={node.ledSize || 18} className="w-full h-1 rounded-lg appearance-none cursor-pointer" style={{ accentColor: 'hsl(152 60% 45%)' }}
                 onChange={(e) => onUpdateNode(node.id, { ledSize: Number(e.target.value) })} />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Rotation: {node.ledRotation || 0}°</label>
+              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Döndürme: {node.ledRotation || 0}°</label>
               <input type="range" min={0} max={360} step={15} value={node.ledRotation || 0} className="w-full h-1 rounded-lg appearance-none cursor-pointer" style={{ accentColor: 'hsl(152 60% 45%)' }}
                 onChange={(e) => onUpdateNode(node.id, { ledRotation: Number(e.target.value) })} />
             </div>
@@ -296,7 +296,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
 
         {node.inputCount > 0 && (
           <div>
-            <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Input pins</label>
+            <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Giriş pinleri</label>
             <div className="space-y-1">
               {Array.from({ length: node.inputCount }, (_, i) => (
                 <input
@@ -313,7 +313,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
 
         {node.outputCount > 0 && (
           <div>
-            <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Output pins</label>
+            <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Çıkış pinleri</label>
             <div className="space-y-1">
               {Array.from({ length: node.outputCount }, (_, i) => (
                 <input
@@ -428,13 +428,13 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
           const isOn = inputValues[i] ?? false;
           let tLeft: number, tTop: number;
           if (rot === 0) {
-            tLeft = width - 18; tTop = (i + 1) * height / (pinCount + 1) - 9;
+            tLeft = width - 26; tTop = (i + 1) * height / (pinCount + 1) - 9;
           } else if (rot === 90) {
-            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = height - 18;
+            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = height - 26;
           } else if (rot === 180) {
-            tLeft = 0; tTop = (i + 1) * height / (pinCount + 1) - 9;
+            tLeft = 8; tTop = (i + 1) * height / (pinCount + 1) - 9;
           } else {
-            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = 0;
+            tLeft = (i + 1) * width / (pinCount + 1) - 9; tTop = 8;
           }
           return (
             <div

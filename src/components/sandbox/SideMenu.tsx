@@ -3,15 +3,14 @@ import { useCircuit } from '@/context/CircuitContext';
 import { GateType, ModuleDefinition } from '@/types/circuit';
 import { Menu, Plus, Trash2, Zap, ToggleLeft, Lightbulb, Box, ChevronDown, ChevronRight, Search, Cable } from 'lucide-react';
 
-const GATE_ITEMS: { type: GateType; label: string; icon: React.ReactNode }[] = [
-  { type: 'AND', label: 'AND Gate', icon: <Zap size={16} /> },
-  { type: 'OR', label: 'OR Gate', icon: <Zap size={16} /> },
-  { type: 'NOT', label: 'NOT Gate', icon: <Zap size={16} /> },
-];
-
-const IO_ITEMS: { type: GateType; label: string; icon: React.ReactNode }[] = [
-  { type: 'INPUT', label: 'Input', icon: <ToggleLeft size={16} /> },
-  { type: 'OUTPUT', label: 'Output', icon: <Box size={16} /> },
+const ALL_ITEMS: { type: GateType; label: string; icon: React.ReactNode }[] = [
+  { type: 'AND', label: 'VE Kapısı', icon: <Zap size={16} /> },
+  { type: 'OR', label: 'VEYA Kapısı', icon: <Zap size={16} /> },
+  { type: 'NOT', label: 'DEĞİL Kapısı', icon: <Zap size={16} /> },
+  { type: 'INPUT', label: 'Giriş', icon: <ToggleLeft size={16} /> },
+  { type: 'OUTPUT', label: 'Çıkış', icon: <Box size={16} /> },
+  { type: 'LED', label: 'LED', icon: <Lightbulb size={16} /> },
+  { type: 'PINBAR', label: 'Pin Bar', icon: <Cable size={16} /> },
 ];
 
 export function SideMenu() {
@@ -29,10 +28,10 @@ export function SideMenu() {
     const inputNodes = nodes.filter(n => n.type === 'INPUT');
     const outputNodes = nodes.filter(n => n.type === 'OUTPUT');
     if (inputNodes.length === 0 || outputNodes.length === 0) {
-      alert('You need at least one INPUT and one OUTPUT node to create a module.');
+      alert('Modül oluşturmak için en az bir GİRİŞ ve bir ÇIKIŞ düğümü gereklidir.');
       return;
     }
-    const name = prompt('Module name:');
+    const name = prompt('Modül adı:');
     if (!name?.trim()) return;
     const module: ModuleDefinition = {
       id: crypto.randomUUID(), name: name.trim(),
@@ -41,20 +40,17 @@ export function SideMenu() {
       inputCount: inputNodes.length, outputCount: outputNodes.length,
     };
     dispatch({ type: 'CREATE_MODULE', module });
-    alert(`Module "${name}" created!`);
+    alert(`"${name}" modülü oluşturuldu!`);
   };
 
   const deleteModule = (id: string, name: string) => {
-    if (confirm(`Delete module "${name}"?`)) {
+    if (confirm(`"${name}" modülünü silmek istediğinize emin misiniz?`)) {
       dispatch({ type: 'DELETE_MODULE', id });
     }
   };
 
   const q = search.toLowerCase();
-  const filteredGates = GATE_ITEMS.filter(i => i.label.toLowerCase().includes(q));
-  const filteredIO = IO_ITEMS.filter(i => i.label.toLowerCase().includes(q));
-  const showLed = 'led'.includes(q) || !q;
-  const showPinBar = 'pin bar'.includes(q) || 'pinbar'.includes(q) || 'bar'.includes(q) || !q;
+  const filteredItems = ALL_ITEMS.filter(i => i.label.toLowerCase().includes(q));
   const filteredModules = state.modules.filter(m => m.name.toLowerCase().includes(q));
 
   return (
@@ -75,42 +71,22 @@ export function SideMenu() {
           <div className="relative mb-3">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'hsl(215 10% 40%)' }} />
             <input
-              type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)}
+              type="text" placeholder="Ara..." value={search} onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-2 rounded-md text-sm outline-none"
               style={{ backgroundColor: 'hsl(228 15% 14%)', border: '1px solid hsl(228 15% 22%)', color: 'hsl(210 15% 82%)' }}
             />
           </div>
 
-          {filteredGates.length > 0 && (
-            <CollapsibleSection title="Core Gates" defaultOpen>
-              {filteredGates.map(item => (
+          {filteredItems.length > 0 && (
+            <CollapsibleSection title="Ana Bileşenler" defaultOpen>
+              {filteredItems.map(item => (
                 <ToolButton key={item.type} label={item.label} icon={item.icon} onClick={() => selectTool(item.type)} />
               ))}
             </CollapsibleSection>
           )}
 
-          {filteredIO.length > 0 && (
-            <CollapsibleSection title="I/O" defaultOpen>
-              {filteredIO.map(item => (
-                <ToolButton key={item.type} label={item.label} icon={item.icon} onClick={() => selectTool(item.type)} />
-              ))}
-            </CollapsibleSection>
-          )}
-
-          {showLed && (
-            <CollapsibleSection title="LED" defaultOpen>
-              <ToolButton label="LED" icon={<Lightbulb size={16} />} onClick={() => selectTool('LED')} />
-            </CollapsibleSection>
-          )}
-
-          {showPinBar && (
-            <CollapsibleSection title="Connectors" defaultOpen>
-              <ToolButton label="Pin Bar" icon={<Cable size={16} />} onClick={() => selectTool('PINBAR')} />
-            </CollapsibleSection>
-          )}
-
-          <CollapsibleSection title="My Modules" defaultOpen>
-            {filteredModules.length === 0 && <p className="text-xs" style={{ color: 'hsl(215 10% 45%)' }}>{q ? 'No match' : 'No modules yet'}</p>}
+          <CollapsibleSection title="Modüllerim" defaultOpen>
+            {filteredModules.length === 0 && <p className="text-xs" style={{ color: 'hsl(215 10% 45%)' }}>{q ? 'Eşleşme yok' : 'Henüz modül yok'}</p>}
             {filteredModules.map(m => (
               <div key={m.id} className="flex items-center gap-1 group/mod">
                 <ToolButton label={`${m.name} (${m.inputCount}→${m.outputCount})`} icon={<Box size={16} />} onClick={() => selectTool('MODULE', m.id)} className="flex-1 min-w-0" />
@@ -120,7 +96,7 @@ export function SideMenu() {
               </div>
             ))}
             <button className="w-full mt-2 py-2 rounded-md text-xs font-medium flex items-center justify-center gap-1 transition-colors" style={{ backgroundColor: 'hsl(152 60% 25%)', color: 'hsl(152 60% 90%)', border: '1px solid hsl(152 60% 35%)' }} onClick={createModule}>
-              <Plus size={14} /> Create Module
+              <Plus size={14} /> Modül Oluştur
             </button>
           </CollapsibleSection>
         </div>
