@@ -378,7 +378,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
       <div
         ref={nodeRef}
         className="absolute select-none cursor-grab active:cursor-grabbing group"
-        style={{ left: node.x, top: node.y, width, height }}
+        style={{ left: node.x, top: node.y, width, height, zIndex: showSettings ? 9999 : undefined }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -479,7 +479,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
       <div
         ref={nodeRef}
         className="absolute select-none cursor-grab active:cursor-grabbing group"
-        style={{ left: node.x, top: node.y, width, height }}
+        style={{ left: node.x, top: node.y, width, height, zIndex: showSettings ? 9999 : undefined }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -503,12 +503,83 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
     );
   }
 
+  // ===== INPUT / OUTPUT as pinbar-style =====
+  if (node.type === 'INPUT' || node.type === 'OUTPUT') {
+    const isInput = node.type === 'INPUT';
+    const isOn = isInput ? (node.inputValue ?? false) : (inputValues[0] ?? false);
+    const barColor = isInput ? 'hsl(45 70% 30%)' : 'hsl(185 55% 25%)';
+    const activeColor = isInput ? 'hsl(45 90% 55%)' : 'hsl(152 80% 45%)';
+    const activeBorder = isInput ? 'hsl(45 90% 70%)' : 'hsl(152 80% 60%)';
+
+    return (
+      <div
+        ref={nodeRef}
+        className="absolute select-none cursor-grab active:cursor-grabbing group"
+        style={{ left: node.x, top: node.y, width, height, zIndex: showSettings ? 9999 : undefined }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        {/* Vertical bar */}
+        <div className="absolute" style={{
+          left: isInput ? width - 4 : 0, top: 0,
+          width: 4, height: '100%',
+          backgroundColor: barColor, borderRadius: 2,
+        }} />
+
+        {/* Toggle / indicator square */}
+        <div
+          className="absolute rounded"
+          style={{
+            left: isInput ? 4 : width - 22,
+            top: height / 2 - 9,
+            width: 18, height: 18,
+            backgroundColor: isOn ? activeColor : 'hsl(228 10% 22%)',
+            border: `2px solid ${isOn ? activeBorder : 'hsl(228 10% 35%)'}`,
+            cursor: isInput ? 'pointer' : 'default',
+            zIndex: 11, transition: 'all 0.1s',
+          }}
+          onPointerDown={(e) => {
+            if (isInput) { e.stopPropagation(); onToggle(node.id); }
+          }}
+        />
+
+        {/* Label */}
+        <span className="absolute text-[9px] font-bold tracking-wide pointer-events-none" style={{
+          color: 'hsl(210 15% 60%)',
+          left: isInput ? 0 : width - 18,
+          top: -14,
+          width: 18,
+          textAlign: 'center',
+        }}>
+          {isInput ? 'I' : 'O'}
+        </span>
+
+        {renderPins(isInput ? 'output' : 'input')}
+
+        <button className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+          style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
+          onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
+          <X size={12} />
+        </button>
+
+        <button className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+          style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
+          onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
+          <Settings size={10} />
+        </button>
+
+        {showSettings && renderSettingsPanel()}
+      </div>
+    );
+  }
+
   // ===== DEFAULT GATE / MODULE RENDERING =====
   return (
     <div
       ref={nodeRef}
       className="absolute select-none cursor-grab active:cursor-grabbing group"
-      style={{ left: node.x, top: node.y, width, height }}
+      style={{ left: node.x, top: node.y, width, height, zIndex: showSettings ? 9999 : undefined }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -520,11 +591,6 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         <span className="text-xs font-bold tracking-wide truncate max-w-[100px]" style={{ color: 'hsl(210 15% 88%)' }}>
           {node.label}
         </span>
-        {displayValue !== null && (
-          <span className="text-lg font-mono font-bold" style={{ color: node.type === 'INPUT' ? 'hsl(45 90% 65%)' : 'hsl(185 80% 65%)' }}>
-            {displayValue}
-          </span>
-        )}
       </div>
       {renderPins('input')}
       {renderPins('output')}
