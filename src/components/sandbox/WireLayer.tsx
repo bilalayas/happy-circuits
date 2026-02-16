@@ -15,11 +15,13 @@ export function WireLayer({ nodes, connections, nodeOutputs, cycleConnectionIds,
     <svg
       style={{
         position: 'absolute',
-        inset: 0,
-        width: 99999,
-        height: 99999,
+        left: -10000,
+        top: -10000,
+        width: 30000,
+        height: 30000,
         zIndex: 5,
         pointerEvents: 'none',
+        overflow: 'visible',
       }}
     >
       {connections.map(conn => {
