@@ -115,7 +115,7 @@ export function Canvas() {
       setConnectingFrom({ nodeId, pinIndex, pinType });
       return;
     }
-    if (connectingFrom.nodeId === nodeId) {
+    if (connectingFrom.nodeId === nodeId && connectingFrom.pinType === pinType) {
       setConnectingFrom(null);
       setMouseWorldPos(null);
       return;
@@ -185,7 +185,7 @@ export function Canvas() {
             onDeleteConnection={(id) => dispatch({ type: 'REMOVE_CONNECTION', id })}
           />
           {nodes.map(node => (
-            <div key={node.id} style={{ position: 'relative', zIndex: 10 }}>
+            <div key={node.id} style={{ position: 'relative' }}>
               <GateNode
                 node={node} zoom={zoom}
                 isConnecting={!!connectingFrom}
