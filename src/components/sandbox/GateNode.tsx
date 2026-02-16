@@ -545,14 +545,13 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         />
 
         {/* Label */}
-        <span className="absolute text-[9px] font-bold tracking-wide pointer-events-none" style={{
+        <span className="absolute text-[8px] font-bold tracking-wide pointer-events-none whitespace-nowrap" style={{
           color: 'hsl(210 15% 60%)',
-          left: isInput ? 0 : width - 18,
+          left: isInput ? 0 : 'auto',
+          right: isInput ? 'auto' : 0,
           top: -14,
-          width: 18,
-          textAlign: 'center',
         }}>
-          {isInput ? 'I' : 'O'}
+          {(node.pinNames?.['output-0'] || node.pinNames?.['input-0']) || (isInput ? 'Input' : 'Output')}
         </span>
 
         {renderPins(isInput ? 'output' : 'input')}

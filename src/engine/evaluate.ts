@@ -7,6 +7,7 @@ export function evaluateCircuit(
 ): Record<string, boolean[]> {
   const outputs: Record<string, boolean[]> = {};
 
+  // Build adjacency
   const outEdges: Record<string, Set<string>> = {};
   const inEdges: Record<string, Set<string>> = {};
   for (const node of nodes) {
@@ -20,14 +21,13 @@ export function evaluateCircuit(
     }
   }
 
+  // Topological sort
   const inDegree: Record<string, number> = {};
   for (const node of nodes) inDegree[node.id] = inEdges[node.id]?.size || 0;
-
   const queue: string[] = [];
   for (const node of nodes) {
     if (inDegree[node.id] === 0) queue.push(node.id);
   }
-
   const sorted: string[] = [];
   while (queue.length > 0) {
     const id = queue.shift()!;
@@ -38,16 +38,18 @@ export function evaluateCircuit(
     }
   }
 
-  // Also add cycle nodes at the end so they get default outputs
+  // Collect cycle nodes
+  const cycleNodeIds: string[] = [];
   for (const node of nodes) {
     if (!sorted.includes(node.id)) {
+      cycleNodeIds.push(node.id);
       sorted.push(node.id);
     }
   }
 
-  for (const nodeId of sorted) {
+  const evaluateNode = (nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
-    if (!node) continue;
+    if (!node) return;
 
     const inputValues: boolean[] = [];
     for (let i = 0; i < node.inputCount; i++) {
@@ -115,6 +117,22 @@ export function evaluateCircuit(
       }
       default:
         outputs[nodeId] = [false];
+    }
+  };
+
+  // First pass: evaluate in topological order
+  for (const nodeId of sorted) {
+    evaluateNode(nodeId);
+  }
+
+  // Iterative settling for feedback loops (up to 10 iterations)
+  if (cycleNodeIds.length > 0) {
+    for (let iter = 0; iter < 10; iter++) {
+      const prevSnapshot = JSON.stringify(outputs);
+      for (const nodeId of sorted) {
+        evaluateNode(nodeId);
+      }
+      if (JSON.stringify(outputs) === prevSnapshot) break;
     }
   }
 
