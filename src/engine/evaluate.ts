@@ -3,7 +3,8 @@ import { CircuitNode, Connection, ModuleDefinition } from '@/types/circuit';
 export function evaluateCircuit(
   nodes: CircuitNode[],
   connections: Connection[],
-  modules: ModuleDefinition[]
+  modules: ModuleDefinition[],
+  previousOutputs?: Record<string, boolean[]>
 ): Record<string, boolean[]> {
   const outputs: Record<string, boolean[]> = {};
 
@@ -44,6 +45,15 @@ export function evaluateCircuit(
     if (!sorted.includes(node.id)) {
       cycleNodeIds.push(node.id);
       sorted.push(node.id);
+    }
+  }
+
+  // Seed cycle nodes with previous outputs so feedback memory is preserved
+  if (previousOutputs) {
+    for (const nodeId of cycleNodeIds) {
+      if (previousOutputs[nodeId]) {
+        outputs[nodeId] = [...previousOutputs[nodeId]];
+      }
     }
   }
 
