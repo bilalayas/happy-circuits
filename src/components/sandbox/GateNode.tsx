@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react';
-import { CircuitNode, getNodeDimensions, snapToGrid, GATE_STYLES, LedShape } from '@/types/circuit';
-import { X, Settings } from 'lucide-react';
+import { CircuitNode, getNodeDimensions, snapToGrid, GATE_STYLES, LedShape, ButtonMode } from '@/types/circuit';
+import { X, Settings, Lock } from 'lucide-react';
 
 interface GateNodeProps {
   node: CircuitNode;
@@ -31,6 +31,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
+  const momentaryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const pinSize = isConnecting ? 16 : 10;
 
@@ -46,11 +47,17 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
     return () => document.removeEventListener('pointerdown', handler, true);
   }, [showSettings]);
 
+  // Cleanup momentary timer
+  useEffect(() => {
+    return () => { if (momentaryTimerRef.current) clearTimeout(momentaryTimerRef.current); };
+  }, []);
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (node.locked) return; // Locked nodes can't be moved
     e.stopPropagation();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     dragRef.current = { startX: e.clientX, startY: e.clientY, nodeX: node.x, nodeY: node.y, moved: false };
-  }, [node.x, node.y]);
+  }, [node.x, node.y, node.locked]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragRef.current) return;
@@ -69,9 +76,34 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
     dragRef.current = null;
   }, [node.id, node.type, onToggle]);
 
+  // Button-specific handlers
+  const handleButtonPointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    const mode = node.buttonMode || 'momentary';
+    if (mode === 'hold') {
+      onUpdateNode(node.id, { inputValue: true });
+    } else if (mode === 'momentary') {
+      onUpdateNode(node.id, { inputValue: true });
+      if (momentaryTimerRef.current) clearTimeout(momentaryTimerRef.current);
+      momentaryTimerRef.current = setTimeout(() => {
+        onUpdateNode(node.id, { inputValue: false });
+      }, 200);
+    } else if (mode === 'toggle') {
+      onToggle(node.id);
+    }
+  }, [node.id, node.buttonMode, onUpdateNode, onToggle]);
+
+  const handleButtonPointerUp = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    const mode = node.buttonMode || 'momentary';
+    if (mode === 'hold') {
+      onUpdateNode(node.id, { inputValue: false });
+    }
+  }, [node.id, node.buttonMode, onUpdateNode]);
+
   const rot = node.rotation || 0;
   const isVerticalPinBar = node.type === 'PINBAR' && (rot === 0 || rot === 180);
-  const isHorizontalPinBar = node.type === 'PINBAR' && (rot === 90 || rot === 270);
+  const _isHorizontalPinBar = node.type === 'PINBAR' && (rot === 90 || rot === 270);
 
   const renderPins = (type: 'input' | 'output') => {
     const count = type === 'input' ? node.inputCount : node.outputCount;
@@ -161,6 +193,9 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
     const setPinName = (key: string, value: string) => {
       onUpdateNode(node.id, { pinNames: { ...names, [key]: value } });
     };
+
+    // For module nodes, pin names come from module definition and are read-only
+    const isModuleNode = node.type === 'MODULE';
 
     return (
       <div
@@ -253,6 +288,42 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
           </>
         )}
 
+        {node.type === 'BUTTON' && (
+          <>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-semibold block mb-1" style={{ color: 'hsl(215 10% 50%)' }}>Mod</label>
+              <div className="flex gap-1">
+                {([
+                  { value: 'momentary' as ButtonMode, label: 'Anlık' },
+                  { value: 'toggle' as ButtonMode, label: 'Aç/Kapa' },
+                  { value: 'hold' as ButtonMode, label: 'Basılı Tut' },
+                ]).map(m => (
+                  <button
+                    key={m.value} className="px-2 py-1 rounded text-[10px] font-semibold"
+                    style={{
+                      backgroundColor: (node.buttonMode || 'momentary') === m.value ? 'hsl(228 15% 25%)' : 'transparent',
+                      color: 'hsl(210 15% 80%)',
+                      border: (node.buttonMode || 'momentary') === m.value ? '1px solid hsl(228 15% 35%)' : '1px solid transparent',
+                    }}
+                    onClick={() => onUpdateNode(node.id, { buttonMode: m.value })}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={node.locked ?? false}
+                onChange={(e) => onUpdateNode(node.id, { locked: e.target.checked })}
+                className="accent-emerald-500"
+              />
+              <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(215 10% 50%)' }}>Kilitle (hareket ettirilemez)</span>
+            </label>
+          </>
+        )}
+
         {node.type === 'LED' && (
           <>
             <div>
@@ -305,6 +376,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
                   className="w-full px-2 py-1 rounded text-xs outline-none"
                   style={{ backgroundColor: 'hsl(228 15% 18%)', border: '1px solid hsl(228 15% 25%)', color: 'hsl(210 15% 82%)' }}
                   onChange={(e) => setPinName(`input-${i}`, e.target.value)}
+                  readOnly={isModuleNode}
                 />
               ))}
             </div>
@@ -322,6 +394,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
                   className="w-full px-2 py-1 rounded text-xs outline-none"
                   style={{ backgroundColor: 'hsl(228 15% 18%)', border: '1px solid hsl(228 15% 25%)', color: 'hsl(210 15% 82%)' }}
                   onChange={(e) => setPinName(`output-${i}`, e.target.value)}
+                  readOnly={isModuleNode}
                 />
               ))}
             </div>
@@ -331,7 +404,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
     );
   };
 
-  const displayValue = node.type === 'INPUT'
+  const _displayValue = node.type === 'INPUT'
     ? (node.inputValue ? '1' : '0')
     : node.type === 'OUTPUT'
     ? ((inputValues[0] ?? false) ? '1' : '0')
@@ -366,6 +439,41 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
       case 'segment': return <div style={{ ...baseStyle, borderRadius: 2 }} />;
       default: return <div style={{ ...baseStyle, borderRadius: '50%' }} />;
     }
+  };
+
+  // Helper to render action buttons (settings & delete) with proper spacing
+  const renderActionButtons = (compact = false) => {
+    if (compact) {
+      // For narrow nodes (INPUT, OUTPUT), stack vertically on right side
+      return (
+        <>
+          <button className="absolute w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+            style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s', top: -8, right: -12 }}
+            onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
+            <X size={12} />
+          </button>
+          <button className="absolute w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+            style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s', bottom: -8, right: -12 }}
+            onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
+            <Settings size={10} />
+          </button>
+        </>
+      );
+    }
+    return (
+      <>
+        <button className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+          style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
+          onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
+          <X size={12} />
+        </button>
+        <button className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+          style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
+          onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
+          <Settings size={10} />
+        </button>
+      </>
+    );
   };
 
   // ===== PINBAR RENDERING =====
@@ -451,23 +559,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         })}
 
         {renderPins(mode === 'input' ? 'output' : 'input')}
-
-        <button
-          className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}
-        >
-          <X size={12} />
-        </button>
-
-        <button
-          className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-        >
-          <Settings size={10} />
-        </button>
-
+        {renderActionButtons()}
         {showSettings && renderSettingsPanel()}
       </div>
     );
@@ -488,16 +580,68 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
           {renderLedShape()}
         </div>
         {renderPins('input')}
-        <button className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
-          <X size={12} />
-        </button>
-        <button className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
-          <Settings size={10} />
-        </button>
+        {renderActionButtons()}
+        {showSettings && renderSettingsPanel()}
+      </div>
+    );
+  }
+
+  // ===== BUTTON RENDERING =====
+  if (node.type === 'BUTTON') {
+    const isOn = node.inputValue ?? false;
+    const mode = node.buttonMode || 'momentary';
+    const isLocked = node.locked ?? false;
+
+    return (
+      <div
+        ref={nodeRef}
+        className={`absolute select-none group ${isLocked ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'}`}
+        style={{ left: node.x, top: node.y, width, height, zIndex: showSettings ? 9999 : undefined }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+      >
+        <div
+          className="w-full h-full rounded-xl flex flex-col items-center justify-center relative"
+          style={{
+            backgroundColor: isOn ? 'hsl(0 60% 40%)' : 'hsl(0 40% 25%)',
+            border: `2px solid ${isOn ? 'hsl(0 70% 55%)' : 'hsl(0 50% 45%)'}`,
+            boxShadow: isOn ? '0 0 12px hsl(0 70% 40%), inset 0 2px 4px hsl(0 60% 50%)' : 'inset 0 -3px 6px hsl(0 30% 15%)',
+            transition: 'all 0.1s',
+          }}
+        >
+          {/* Push button surface */}
+          <div
+            className="rounded-lg cursor-pointer"
+            style={{
+              width: 28, height: 28,
+              backgroundColor: isOn ? 'hsl(0 70% 55%)' : 'hsl(0 35% 35%)',
+              border: `2px solid ${isOn ? 'hsl(0 80% 65%)' : 'hsl(0 30% 45%)'}`,
+              boxShadow: isOn ? 'none' : '0 3px 6px hsl(0 20% 10%)',
+              transform: isOn ? 'translateY(2px)' : 'none',
+              transition: 'all 0.1s',
+            }}
+            onPointerDown={handleButtonPointerDown}
+            onPointerUp={handleButtonPointerUp}
+            onPointerLeave={() => {
+              if (mode === 'hold' && isOn) {
+                onUpdateNode(node.id, { inputValue: false });
+              }
+            }}
+          />
+          <span className="text-[7px] font-bold mt-0.5 pointer-events-none" style={{ color: 'hsl(0 20% 70%)' }}>
+            {mode === 'momentary' ? 'MOM' : mode === 'toggle' ? 'TOG' : 'HLD'}
+          </span>
+        </div>
+
+        {isLocked && (
+          <div className="absolute top-0 left-0" style={{ color: 'hsl(45 80% 55%)', zIndex: 20 }}>
+            <Lock size={10} />
+          </div>
+        )}
+
+        {renderPins('output')}
+        {renderActionButtons()}
         {showSettings && renderSettingsPanel()}
       </div>
     );
@@ -555,19 +699,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
         </span>
 
         {renderPins(isInput ? 'output' : 'input')}
-
-        <button className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
-          <X size={12} />
-        </button>
-
-        <button className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
-          <Settings size={10} />
-        </button>
-
+        {renderActionButtons(true)}
         {showSettings && renderSettingsPanel()}
       </div>
     );
@@ -593,20 +725,7 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
       </div>
       {renderPins('input')}
       {renderPins('output')}
-
-      <button className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-        style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-        onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
-        <X size={12} />
-      </button>
-
-      {(node.type === 'MODULE' || node.inputCount > 0 || node.outputCount > 0) && (
-        <button className="absolute -top-2 -left-2 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-          style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s' }}
-          onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
-          <Settings size={10} />
-        </button>
-      )}
+      {renderActionButtons()}
 
       {showSettings && renderSettingsPanel()}
     </div>

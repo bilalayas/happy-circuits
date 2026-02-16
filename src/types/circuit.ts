@@ -1,6 +1,7 @@
-export type GateType = 'AND' | 'OR' | 'NOT' | 'INPUT' | 'OUTPUT' | 'LED' | 'MODULE' | 'PINBAR';
+export type GateType = 'AND' | 'OR' | 'NOT' | 'INPUT' | 'OUTPUT' | 'LED' | 'MODULE' | 'PINBAR' | 'BUTTON';
 
 export type LedShape = 'circle' | 'square' | 'triangle' | 'segment';
+export type ButtonMode = 'momentary' | 'toggle' | 'hold';
 
 export interface CircuitNode {
   id: string;
@@ -21,6 +22,8 @@ export interface CircuitNode {
   pinBarMode?: 'input' | 'output';
   pinBarValues?: boolean[];
   rotation?: number;
+  buttonMode?: ButtonMode;
+  locked?: boolean;
 }
 
 export interface Connection {
@@ -40,6 +43,8 @@ export interface ModuleDefinition {
   outputNodeIds: string[];
   inputCount: number;
   outputCount: number;
+  inputPinNames?: string[];
+  outputPinNames?: string[];
 }
 
 export const GRID_SIZE = 20;
@@ -54,6 +59,7 @@ export const GATE_CONFIGS: Record<string, { label: string; inputCount: number; o
   OUTPUT: { label: 'OUTPUT', inputCount: 1, outputCount: 0 },
   LED: { label: 'LED', inputCount: 1, outputCount: 0 },
   PINBAR: { label: 'BAR', inputCount: 0, outputCount: 4 },
+  BUTTON: { label: 'BTN', inputCount: 0, outputCount: 1 },
 };
 
 export function getNodeDimensions(node: CircuitNode): { width: number; height: number } {
@@ -66,6 +72,9 @@ export function getNodeDimensions(node: CircuitNode): { width: number; height: n
   }
   if (node.type === 'INPUT' || node.type === 'OUTPUT') {
     return { width: PINBAR_THICKNESS, height: 40 };
+  }
+  if (node.type === 'BUTTON') {
+    return { width: 50, height: 50 };
   }
   if (node.type === 'MODULE' && (node.rotation === 90 || node.rotation === 270)) {
     const maxPins = Math.max(node.inputCount, node.outputCount, 1);
@@ -140,4 +149,5 @@ export const GATE_STYLES: Record<string, { bg: string; border: string }> = {
   LED: { bg: 'transparent', border: 'transparent' },
   MODULE: { bg: 'hsl(45 35% 20%)', border: 'hsl(45 40% 42%)' },
   PINBAR: { bg: 'hsl(220 30% 22%)', border: 'hsl(220 30% 38%)' },
+  BUTTON: { bg: 'hsl(0 40% 25%)', border: 'hsl(0 50% 45%)' },
 };

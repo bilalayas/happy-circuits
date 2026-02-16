@@ -73,6 +73,7 @@ export function evaluateCircuit(
 
     switch (node.type) {
       case 'INPUT':
+      case 'BUTTON':
         outputs[nodeId] = [node.inputValue ?? false];
         break;
       case 'AND':
@@ -105,19 +106,72 @@ export function evaluateCircuit(
       case 'MODULE': {
         const moduleDef = modules.find(m => m.id === node.moduleId);
         if (moduleDef) {
+          // Build input values: each INPUT node contributes 1 input, each PINBAR in input mode contributes N
+          const moduleInputValues: boolean[] = [];
+          let inputIdx = 0;
+          for (const inId of moduleDef.inputNodeIds) {
+            const inNode = moduleDef.nodes.find(n => n.id === inId);
+            if (!inNode) continue;
+            if (inNode.type === 'INPUT') {
+              moduleInputValues.push(inputValues[inputIdx] ?? false);
+              inputIdx++;
+            } else if (inNode.type === 'PINBAR') {
+              const count = inNode.outputCount;
+              for (let pi = 0; pi < count; pi++) {
+                moduleInputValues.push(inputValues[inputIdx] ?? false);
+                inputIdx++;
+              }
+            }
+          }
+
           const internalNodes = moduleDef.nodes.map(n => {
             if (n.type === 'INPUT') {
               const idx = moduleDef.inputNodeIds.indexOf(n.id);
-              if (idx >= 0 && idx < inputValues.length) {
-                return { ...n, inputValue: inputValues[idx] };
+              if (idx >= 0) {
+                // Calculate the actual input index for this INPUT node
+                let actualIdx = 0;
+                for (let k = 0; k < idx; k++) {
+                  const prevNode = moduleDef.nodes.find(nn => nn.id === moduleDef.inputNodeIds[k]);
+                  if (prevNode?.type === 'PINBAR') actualIdx += prevNode.outputCount;
+                  else actualIdx += 1;
+                }
+                return { ...n, inputValue: moduleInputValues[actualIdx] ?? false };
+              }
+            }
+            if (n.type === 'PINBAR' && (n.pinBarMode || 'input') === 'input') {
+              const idx = moduleDef.inputNodeIds.indexOf(n.id);
+              if (idx >= 0) {
+                let actualIdx = 0;
+                for (let k = 0; k < idx; k++) {
+                  const prevNode = moduleDef.nodes.find(nn => nn.id === moduleDef.inputNodeIds[k]);
+                  if (prevNode?.type === 'PINBAR') actualIdx += prevNode.outputCount;
+                  else actualIdx += 1;
+                }
+                const vals = Array.from({ length: n.outputCount }, (_, pi) => moduleInputValues[actualIdx + pi] ?? false);
+                return { ...n, pinBarValues: vals };
               }
             }
             return { ...n };
           });
+
           const internalOutputs = evaluateCircuit(internalNodes, moduleDef.connections, modules);
+
           const result: boolean[] = [];
           for (const outId of moduleDef.outputNodeIds) {
-            result.push((internalOutputs[outId] || [])[0] ?? false);
+            const outNode = moduleDef.nodes.find(n => n.id === outId);
+            if (outNode?.type === 'PINBAR' && outNode.pinBarMode === 'output') {
+              for (let pi = 0; pi < outNode.inputCount; pi++) {
+                // For output pinbars, get the input values from internal evaluation
+                const conn = moduleDef.connections.find(c => c.toNodeId === outId && c.toPinIndex === pi);
+                if (conn) {
+                  result.push((internalOutputs[conn.fromNodeId] || [])[conn.fromPinIndex] ?? false);
+                } else {
+                  result.push(false);
+                }
+              }
+            } else {
+              result.push((internalOutputs[outId] || [])[0] ?? false);
+            }
           }
           outputs[nodeId] = result;
         } else {

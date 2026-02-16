@@ -45,12 +45,26 @@ export function Canvas() {
       if (selectedTool === 'MODULE' && selectedModuleId) {
         const mod = modules.find(m => m.id === selectedModuleId);
         if (!mod) return;
-        newNode = { id: crypto.randomUUID(), type: 'MODULE', x, y, label: mod.name, inputCount: mod.inputCount, outputCount: mod.outputCount, moduleId: mod.id };
+        // Auto-assign pin names from module definition
+        const pinNames: Record<string, string> = {};
+        if (mod.inputPinNames) {
+          mod.inputPinNames.forEach((name, i) => { pinNames[`input-${i}`] = name; });
+        }
+        if (mod.outputPinNames) {
+          mod.outputPinNames.forEach((name, i) => { pinNames[`output-${i}`] = name; });
+        }
+        newNode = { id: crypto.randomUUID(), type: 'MODULE', x, y, label: mod.name, inputCount: mod.inputCount, outputCount: mod.outputCount, moduleId: mod.id, pinNames, showPinNames: true };
       } else if (selectedTool === 'PINBAR') {
         newNode = {
           id: crypto.randomUUID(), type: 'PINBAR', x, y,
           label: 'BAR', inputCount: 0, outputCount: 4,
           pinBarMode: 'input', pinBarValues: [false, false, false, false],
+        };
+      } else if (selectedTool === 'BUTTON') {
+        newNode = {
+          id: crypto.randomUUID(), type: 'BUTTON', x, y,
+          label: 'BTN', inputCount: 0, outputCount: 1,
+          inputValue: false, buttonMode: 'momentary',
         };
       } else {
         const config = GATE_CONFIGS[selectedTool];

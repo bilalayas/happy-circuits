@@ -11,7 +11,8 @@ interface CircuitState {
   panOffset: { x: number; y: number };
   zoom: number;
   paused: boolean;
-  forceResumed: boolean; // NEW: tracks if user force-resumed despite cycles
+  forceResumed: boolean;
+  editingModuleId: string | null;
 }
 
 type Action =
@@ -25,18 +26,21 @@ type Action =
   | { type: 'SET_PAN'; offset: { x: number; y: number } }
   | { type: 'SET_ZOOM'; zoom: number }
   | { type: 'CREATE_MODULE'; module: ModuleDefinition }
+  | { type: 'UPDATE_MODULE'; module: ModuleDefinition }
   | { type: 'DELETE_MODULE'; id: string }
   | { type: 'LOAD_MODULES'; modules: ModuleDefinition[] }
   | { type: 'CLEAR_CANVAS' }
   | { type: 'UPDATE_NODE'; id: string; updates: Partial<CircuitNode> }
   | { type: 'SET_PAUSED'; paused: boolean }
   | { type: 'FORCE_RESUME' }
-  | { type: 'TOGGLE_PINBAR_PIN'; nodeId: string; pinIndex: number };
+  | { type: 'TOGGLE_PINBAR_PIN'; nodeId: string; pinIndex: number }
+  | { type: 'START_EDIT_MODULE'; moduleId: string }
+  | { type: 'FINISH_EDIT_MODULE' };
 
 const UNDOABLE_ACTIONS = new Set([
   'ADD_NODE', 'MOVE_NODE', 'REMOVE_NODE',
   'ADD_CONNECTION', 'REMOVE_CONNECTION',
-  'TOGGLE_INPUT', 'CREATE_MODULE', 'DELETE_MODULE',
+  'TOGGLE_INPUT', 'CREATE_MODULE', 'DELETE_MODULE', 'UPDATE_MODULE',
   'CLEAR_CANVAS', 'UPDATE_NODE', 'TOGGLE_PINBAR_PIN',
 ]);
 
@@ -57,11 +61,9 @@ function reducer(state: CircuitState, action: Action): CircuitState {
         c => c.toNodeId === action.connection.toNodeId && c.toPinIndex === action.connection.toPinIndex
       );
       if (exists) return state;
-      // Reset forceResumed when connections change (new cycle state)
       return { ...state, connections: [...state.connections, action.connection], forceResumed: false };
     }
     case 'REMOVE_CONNECTION':
-      // Reset forceResumed when connections change
       return { ...state, connections: state.connections.filter(c => c.id !== action.id), forceResumed: false };
     case 'TOGGLE_INPUT':
       return { ...state, nodes: state.nodes.map(n => n.id === action.id ? { ...n, inputValue: !n.inputValue } : n) };
@@ -73,6 +75,8 @@ function reducer(state: CircuitState, action: Action): CircuitState {
       return { ...state, zoom: Math.max(0.25, Math.min(2, action.zoom)) };
     case 'CREATE_MODULE':
       return { ...state, modules: [...state.modules, action.module] };
+    case 'UPDATE_MODULE':
+      return { ...state, modules: state.modules.map(m => m.id === action.module.id ? action.module : m) };
     case 'DELETE_MODULE':
       return { ...state, modules: state.modules.filter(m => m.id !== action.id) };
     case 'LOAD_MODULES':
@@ -95,7 +99,6 @@ function reducer(state: CircuitState, action: Action): CircuitState {
     case 'SET_PAUSED':
       return { ...state, paused: action.paused, forceResumed: false };
     case 'FORCE_RESUME':
-      // Force resume: unpause AND set forceResumed flag to prevent auto-pause
       return { ...state, paused: false, forceResumed: true };
     case 'TOGGLE_PINBAR_PIN': {
       return {
@@ -108,6 +111,18 @@ function reducer(state: CircuitState, action: Action): CircuitState {
         }),
       };
     }
+    case 'START_EDIT_MODULE': {
+      const mod = state.modules.find(m => m.id === action.moduleId);
+      if (!mod) return state;
+      return {
+        ...state,
+        nodes: mod.nodes.map(n => ({ ...n })),
+        connections: mod.connections.map(c => ({ ...c })),
+        editingModuleId: action.moduleId,
+      };
+    }
+    case 'FINISH_EDIT_MODULE':
+      return { ...state, editingModuleId: null };
     default:
       return state;
   }
@@ -149,6 +164,7 @@ export function CircuitProvider({ children }: { children: React.ReactNode }) {
     zoom: 1,
     paused: false,
     forceResumed: false,
+    editingModuleId: null,
   });
 
   const undoStack = useRef<Snapshot[]>([]);
@@ -193,8 +209,6 @@ export function CircuitProvider({ children }: { children: React.ReactNode }) {
     [state.nodes, state.connections]
   );
 
-
-  // FIX: When force-resumed, still evaluate the circuit (don't freeze on last outputs)
   const nodeOutputs = useMemo(() => {
     if (state.paused && !state.forceResumed) return lastOutputsRef.current;
     const result = evaluateCircuit(state.nodes, state.connections, state.modules, lastOutputsRef.current);
