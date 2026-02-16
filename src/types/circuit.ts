@@ -64,6 +64,9 @@ export function getNodeDimensions(node: CircuitNode): { width: number; height: n
     if (rot === 90 || rot === 270) return { width: barLength, height: PINBAR_THICKNESS };
     return { width: PINBAR_THICKNESS, height: barLength };
   }
+  if (node.type === 'INPUT' || node.type === 'OUTPUT') {
+    return { width: PINBAR_THICKNESS, height: 40 };
+  }
   if (node.type === 'MODULE' && (node.rotation === 90 || node.rotation === 270)) {
     const maxPins = Math.max(node.inputCount, node.outputCount, 1);
     const h = Math.max(60, maxPins * 30 + 10);
