@@ -197,7 +197,7 @@ export function CircuitProvider({ children }: { children: React.ReactNode }) {
   // FIX: When force-resumed, still evaluate the circuit (don't freeze on last outputs)
   const nodeOutputs = useMemo(() => {
     if (state.paused && !state.forceResumed) return lastOutputsRef.current;
-    const result = evaluateCircuit(state.nodes, state.connections, state.modules);
+    const result = evaluateCircuit(state.nodes, state.connections, state.modules, lastOutputsRef.current);
     lastOutputsRef.current = result;
     return result;
   }, [state.nodes, state.connections, state.modules, state.paused, state.forceResumed]);
