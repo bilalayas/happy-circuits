@@ -184,20 +184,10 @@ export function evaluateCircuit(
     }
   };
 
-  // First pass: evaluate in topological order
+  // Single pass per tick: evaluate in topological order, then cycle nodes once.
+  // This gives each gate a 1-tick propagation delay, enabling flip-flops & latches.
   for (const nodeId of sorted) {
     evaluateNode(nodeId);
-  }
-
-  // Iterative settling for feedback loops (up to 10 iterations)
-  if (cycleNodeIds.length > 0) {
-    for (let iter = 0; iter < 10; iter++) {
-      const prevSnapshot = JSON.stringify(outputs);
-      for (const nodeId of sorted) {
-        evaluateNode(nodeId);
-      }
-      if (JSON.stringify(outputs) === prevSnapshot) break;
-    }
   }
 
   return outputs;
