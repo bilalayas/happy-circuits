@@ -35,7 +35,8 @@ type Action =
   | { type: 'FORCE_RESUME' }
   | { type: 'TOGGLE_PINBAR_PIN'; nodeId: string; pinIndex: number }
   | { type: 'START_EDIT_MODULE'; moduleId: string }
-  | { type: 'FINISH_EDIT_MODULE' };
+  | { type: 'FINISH_EDIT_MODULE' }
+  | { type: 'LOAD_CANVAS'; nodes: CircuitNode[]; connections: Connection[] };
 
 const UNDOABLE_ACTIONS = new Set([
   'ADD_NODE', 'MOVE_NODE', 'REMOVE_NODE',
@@ -123,6 +124,8 @@ function reducer(state: CircuitState, action: Action): CircuitState {
     }
     case 'FINISH_EDIT_MODULE':
       return { ...state, editingModuleId: null };
+    case 'LOAD_CANVAS':
+      return { ...state, nodes: action.nodes, connections: action.connections };
     default:
       return state;
   }
@@ -229,16 +232,32 @@ export function CircuitProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(interval);
   }, [state.nodes, state.connections, state.modules, state.paused, state.forceResumed]);
 
+  // Load saved canvas + modules on mount
   useEffect(() => {
-    const saved = localStorage.getItem('logic-sandbox-modules');
-    if (saved) {
-      try { rawDispatch({ type: 'LOAD_MODULES', modules: JSON.parse(saved) }); } catch {}
+    const savedModules = localStorage.getItem('logic-sandbox-modules');
+    if (savedModules) {
+      try { rawDispatch({ type: 'LOAD_MODULES', modules: JSON.parse(savedModules) }); } catch {}
+    }
+    const savedCanvas = localStorage.getItem('logic-sandbox-canvas');
+    if (savedCanvas) {
+      try {
+        const { nodes, connections } = JSON.parse(savedCanvas);
+        if (nodes && connections) {
+          rawDispatch({ type: 'LOAD_CANVAS', nodes, connections });
+        }
+      } catch {}
     }
   }, []);
 
+  // Auto-save modules
   useEffect(() => {
     localStorage.setItem('logic-sandbox-modules', JSON.stringify(state.modules));
   }, [state.modules]);
+
+  // Auto-save canvas (nodes + connections)
+  useEffect(() => {
+    localStorage.setItem('logic-sandbox-canvas', JSON.stringify({ nodes: state.nodes, connections: state.connections }));
+  }, [state.nodes, state.connections]);
 
   const canUndo = undoStack.current.length > 0;
   const canRedo = redoStack.current.length > 0;
