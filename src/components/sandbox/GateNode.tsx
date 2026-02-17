@@ -444,16 +444,16 @@ export function GateNode({ node, outputs, inputValues, zoom, isConnecting, onPin
   // Helper to render action buttons (settings & delete) with proper spacing
   const renderActionButtons = (compact = false) => {
     if (compact) {
-      // For narrow nodes (INPUT, OUTPUT), stack vertically on right side
+      // For narrow nodes (INPUT, OUTPUT), position above the node to avoid pin area
       return (
         <>
           <button className="absolute w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-            style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s', top: -8, right: -12 }}
+            style={{ backgroundColor: 'hsl(0 70% 50%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s', top: -22, left: width / 2 + 4 }}
             onPointerDown={(e) => { e.stopPropagation(); onDelete(node.id); }}>
             <X size={12} />
           </button>
           <button className="absolute w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
-            style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s', bottom: -8, right: -12 }}
+            style={{ backgroundColor: 'hsl(228 30% 35%)', color: 'white', zIndex: 20, transition: 'opacity 0.15s', top: -22, left: width / 2 - 24 }}
             onPointerDown={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
             <Settings size={10} />
           </button>

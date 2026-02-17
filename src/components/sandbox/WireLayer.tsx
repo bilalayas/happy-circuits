@@ -13,6 +13,7 @@ interface WireLayerProps {
 export function WireLayer({ nodes, connections, nodeOutputs, cycleConnectionIds, connectingFrom, mouseWorldPos, onDeleteConnection }: WireLayerProps) {
   return (
     <svg
+      viewBox="-10000 -10000 30000 30000"
       style={{
         position: 'absolute',
         left: -10000,
