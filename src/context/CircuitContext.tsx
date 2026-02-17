@@ -209,11 +209,24 @@ export function CircuitProvider({ children }: { children: React.ReactNode }) {
     [state.nodes, state.connections]
   );
 
-  const nodeOutputs = useMemo(() => {
-    if (state.paused && !state.forceResumed) return lastOutputsRef.current;
-    const result = evaluateCircuit(state.nodes, state.connections, state.modules, lastOutputsRef.current);
-    lastOutputsRef.current = result;
-    return result;
+  const [nodeOutputs, setNodeOutputs] = React.useState<Record<string, boolean[]>>({});
+
+  // Fixed-rate simulation loop for feedback circuits (flip-flops, latches)
+  useEffect(() => {
+    if (state.paused && !state.forceResumed) return;
+
+    const tick = () => {
+      const result = evaluateCircuit(state.nodes, state.connections, state.modules, lastOutputsRef.current);
+      lastOutputsRef.current = result;
+      setNodeOutputs(result);
+    };
+
+    // Immediate first evaluation
+    tick();
+
+    // Run at ~60 FPS for feedback loop settling
+    const interval = setInterval(tick, 16);
+    return () => clearInterval(interval);
   }, [state.nodes, state.connections, state.modules, state.paused, state.forceResumed]);
 
   useEffect(() => {
