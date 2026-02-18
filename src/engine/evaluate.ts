@@ -49,6 +49,7 @@ export function evaluateCircuit(
   }
 
   // Seed cycle nodes with previous outputs so feedback memory is preserved
+  const cycleSet = new Set(cycleNodeIds);
   if (previousOutputs) {
     for (const nodeId of cycleNodeIds) {
       if (previousOutputs[nodeId]) {
@@ -57,15 +58,23 @@ export function evaluateCircuit(
     }
   }
 
-  const evaluateNode = (nodeId: string) => {
+  // For cycle nodes, read inputs from a frozen snapshot so evaluation order doesn't matter
+  const frozenOutputs: Record<string, boolean[]> = { ...outputs };
+
+  const evaluateNode = (nodeId: string, isCyclePass: boolean) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
+
+    // Cycle nodes read from frozen (previous) values; acyclic nodes read live values
+    const source = isCyclePass ? frozenOutputs : outputs;
 
     const inputValues: boolean[] = [];
     for (let i = 0; i < node.inputCount; i++) {
       const conn = connections.find(c => c.toNodeId === nodeId && c.toPinIndex === i);
       if (conn) {
-        inputValues.push((outputs[conn.fromNodeId] || [])[conn.fromPinIndex] ?? false);
+        // If the source node is a cycle node during acyclic pass, still use frozen value
+        const readFrom = cycleSet.has(conn.fromNodeId) ? frozenOutputs : source;
+        inputValues.push((readFrom[conn.fromNodeId] || [])[conn.fromPinIndex] ?? false);
       } else {
         inputValues.push(false);
       }
@@ -184,10 +193,23 @@ export function evaluateCircuit(
     }
   };
 
-  // Single pass per tick: evaluate in topological order, then cycle nodes once.
-  // This gives each gate a 1-tick propagation delay, enabling flip-flops & latches.
+  // Pass 1: evaluate acyclic nodes in topological order (they see live values)
   for (const nodeId of sorted) {
-    evaluateNode(nodeId);
+    if (!cycleSet.has(nodeId)) {
+      evaluateNode(nodeId, false);
+    }
+  }
+
+  // Update frozen snapshot with acyclic results so cycle nodes see them
+  for (const nodeId of sorted) {
+    if (!cycleSet.has(nodeId) && outputs[nodeId]) {
+      frozenOutputs[nodeId] = outputs[nodeId];
+    }
+  }
+
+  // Pass 2: evaluate cycle nodes using frozen snapshot (order-independent)
+  for (const nodeId of cycleNodeIds) {
+    evaluateNode(nodeId, true);
   }
 
   return outputs;
